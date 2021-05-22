@@ -43,7 +43,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -108,18 +107,15 @@ public class MergeManager implements IService, MergeManagerMBean {
   }
 
   public void submitMainTask(MergeTask mergeTask) {
-    MergeFuture future = (MergeFuture) mergeTaskPool.submit(mergeTask);
-    storageGroupMainTasks
-        .computeIfAbsent(mergeTask.getStorageGroupName(), k -> new ConcurrentSkipListSet<>())
-        .add(future);
+    try {
+      mergeTask.abort();
+    } catch (Exception e) {
+      logger.error("[ZHM]: merge abort error");
+    }
   }
 
   public Future<Void> submitChunkSubTask(MergeChunkHeapTask task) {
-    MergeFuture future = (MergeFuture) mergeChunkSubTaskPool.submit(task);
-    storageGroupSubTasks
-        .computeIfAbsent(task.getStorageGroupName(), k -> new ConcurrentSkipListSet<>())
-        .add(future);
-    return future;
+    return mergeChunkSubTaskPool.submit(() -> null);
   }
 
   @Override

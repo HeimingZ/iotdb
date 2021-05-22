@@ -114,7 +114,7 @@ public class MergeTask implements Callable<Void> {
     return null;
   }
 
-  private void abort() throws IOException {
+  public void abort() throws IOException {
     states = States.ABORTED;
     cleanUp(false);
     // call the callback to make sure the StorageGroup exit merging status, but passing 2

@@ -156,7 +156,7 @@ public abstract class TsFileManagement {
 
   public class CompactionMergeTask implements Callable<Void> {
 
-    private CloseCompactionMergeCallBack closeCompactionMergeCallBack;
+    public CloseCompactionMergeCallBack closeCompactionMergeCallBack;
     private long timePartitionId;
 
     public CompactionMergeTask(
@@ -175,7 +175,7 @@ public abstract class TsFileManagement {
 
   public class CompactionRecoverTask implements Callable<Void> {
 
-    private CloseCompactionMergeCallBack closeCompactionMergeCallBack;
+    public CloseCompactionMergeCallBack closeCompactionMergeCallBack;
 
     public CompactionRecoverTask(CloseCompactionMergeCallBack closeCompactionMergeCallBack) {
       this.closeCompactionMergeCallBack = closeCompactionMergeCallBack;
