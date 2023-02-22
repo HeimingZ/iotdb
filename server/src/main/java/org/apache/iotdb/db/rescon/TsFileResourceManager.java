@@ -35,7 +35,7 @@ public class TsFileResourceManager {
   private static final IoTDBConfig CONFIG = IoTDBDescriptor.getInstance().getConfig();
 
   /** threshold total memory for all TimeIndex */
-  private double TIME_INDEX_MEMORY_THRESHOLD = CONFIG.getAllocateMemoryForTimeIndex();
+  private double TIME_INDEX_MEMORY_THRESHOLD = 0;
 
   /** store the sealed TsFileResource, sorted by priority of TimeIndex */
   private final TreeSet<TsFileResource> sealedTsFileResources =
@@ -94,8 +94,8 @@ public class TsFileResourceManager {
       if (tsFileResource == null
           || TimeIndexLevel.valueOf(tsFileResource.getTimeIndexType())
               == TimeIndexLevel.FILE_TIME_INDEX) {
-        logger.error("Can't degrade any more");
-        throw new RuntimeException("Can't degrade any more");
+        sealedTsFileResources.add(tsFileResource);
+        return;
       }
       long memoryReduce = tsFileResource.degradeTimeIndex();
       logger.info("Degrade tsfile resource {}", tsFileResource.getTsFilePath());
