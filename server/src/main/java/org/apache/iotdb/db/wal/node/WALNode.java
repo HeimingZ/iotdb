@@ -334,7 +334,7 @@ public class WALNode implements IWALNode {
           "Successfully delete {} outdated wal files for wal node-{}.",
           deletedFilesNum,
           identifier);
-      return endFileIndex < filesToDelete.length;
+      return endFileIndex < filesToDelete.length - 1;
     }
 
     private boolean filterFilesToDelete(File dir, String name) {
@@ -366,11 +366,9 @@ public class WALNode implements IWALNode {
         return false;
       }
       if (oldestMemTableInfo.isPinned()) {
-        logger.warn(
-            "Pipe: Effective information ratio {} of wal node-{} is below wal min effective info ratio {}. But fail to delete memTable-{}'s wal files because they are pinned by the Pipe module.",
-            effectiveInfoRatio,
+        logger.info(
+            "Pipe: WAL node-{} fails to delete memTable-{}'s wal files because they are pinned by the Pipe module.",
             identifier,
-            config.getWalMinEffectiveInfoRatio(),
             oldestMemTableInfo.getMemTableId());
         return false;
       }
@@ -414,13 +412,14 @@ public class WALNode implements IWALNode {
             dataRegion.submitAFlushTask(
                 TsFileUtils.getTimePartition(tsFile), TsFileUtils.isSequence(tsFile), memTable);
         logger.info(
-            "WAL node-{} flushes memTable-{} to TsFile {} because Effective information ratio {} is below wal min effective info ratio {}, memTable size is {}.",
+            "WAL node-{} flushes memTable-{} to TsFile {}, the memTable size is {}, the effective information ratio is {}, the disk usage is {} / {}.",
             identifier,
             memTable.getMemTableId(),
             tsFile,
+            memTable.getTVListsRamCost(),
             effectiveInfoRatio,
-            config.getWalMinEffectiveInfoRatio(),
-            memTable.getTVListsRamCost());
+            getDiskUsage(),
+            WALManager.getInstance().getTotalDiskUsage());
       }
 
       // it's fine to wait until memTable has been flushed, because deleting files is not urgent.
@@ -484,12 +483,13 @@ public class WALNode implements IWALNode {
             logger.error("Fail to snapshot memTable of {}", tsFile, flushListener.getCause());
           }
           logger.info(
-              "WAL node-{} snapshots memTable-{} to wal files because Effective information ratio {} is below wal min effective info ratio {}, memTable size is {}.",
+              "WAL node-{} snapshots memTable-{} to wal files, the memTable size is {}, the effective information ratio is {}, the disk usage is {} / {}.",
               identifier,
               memTable.getMemTableId(),
+              memTable.getTVListsRamCost(),
               effectiveInfoRatio,
-              config.getWalMinEffectiveInfoRatio(),
-              memTable.getTVListsRamCost());
+              getDiskUsage(),
+              WALManager.getInstance().getTotalDiskUsage());
         }
       } finally {
         dataRegion.writeUnlock();

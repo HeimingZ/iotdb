@@ -54,6 +54,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class WALManager implements IService {
   private static final Logger logger = LoggerFactory.getLogger(WALManager.class);
   private static final IoTDBConfig config = IoTDBDescriptor.getInstance().getConfig();
+  private static final double WAL_SPACE_WARN_THRESHOLD = 0.8;
 
   /** manage all wal nodes and decide how to allocate them */
   private final NodeAllocationStrategy walNodesManager;
@@ -202,7 +203,7 @@ public class WALManager implements IService {
   }
 
   public boolean shouldThrottle() {
-    return getTotalDiskUsage() >= config.getThrottleThreshold() * 0.8;
+    return getTotalDiskUsage() >= config.getThrottleThreshold() * WAL_SPACE_WARN_THRESHOLD;
   }
 
   public long getTotalDiskUsage() {

@@ -832,9 +832,10 @@ public class TsFileProcessor {
       if (logger.isInfoEnabled()) {
         if (workMemTable != null) {
           logger.info(
-              "{}: flush a working memtable in async close tsfile {}, memtable size: {}, tsfile "
+              "{}: flush a working memtable-{} in async close tsfile {}, memtable size: {}, tsfile "
                   + "size: {}, plan index: [{}, {}], progress index: {}",
               storageGroupName,
+              workMemTable.getMemTableId(),
               tsFileResource.getTsFile().getAbsolutePath(),
               workMemTable.memSize(),
               tsFileResource.getTsFileSize(),
@@ -872,7 +873,10 @@ public class TsFileProcessor {
         // When invoke closing TsFile after insert data to memTable, we shouldn't flush until invoke
         // flushing memTable in System module.
         addAMemtableIntoFlushingList(tmpMemTable);
-        logger.info("Memtable {} has been added to flushing list", tmpMemTable);
+        logger.info(
+            "Memtable-{} {} has been added to flushing list",
+            tmpMemTable.getMemTableId(),
+            tmpMemTable);
         shouldClose = true;
       } catch (Exception e) {
         logger.error(
@@ -954,13 +958,16 @@ public class TsFileProcessor {
         return;
       }
       logger.info(
-          "Async flush a memtable to tsfile: {}", tsFileResource.getTsFile().getAbsolutePath());
+          "Async flush a memtable-{} to tsfile: {}",
+          workMemTable.getMemTableId(),
+          tsFileResource.getTsFile().getAbsolutePath());
       addAMemtableIntoFlushingList(workMemTable);
     } catch (Exception e) {
       logger.error(
-          "{}: {} add a memtable into flushing list failed",
+          "{}: {} add a memtable-{} into flushing list failed",
           storageGroupName,
           tsFileResource.getTsFile().getName(),
+          workMemTable.getMemTableId(),
           e);
     } finally {
       flushQueryLock.writeLock().unlock();
@@ -1004,9 +1011,10 @@ public class TsFileProcessor {
     flushingMemTables.addLast(tobeFlushed);
     if (logger.isDebugEnabled()) {
       logger.debug(
-          "{}: {} Memtable (signal = {}) is added into the flushing Memtable, queue size = {}",
+          "{}: {} Memtable-{} (signal = {}) is added into the flushing Memtable, queue size = {}",
           storageGroupName,
           tsFileResource.getTsFile().getName(),
+          tobeFlushed.getMemTableId(),
           tobeFlushed.isSignalMemTable(),
           flushingMemTables.size());
     }
@@ -1029,15 +1037,17 @@ public class TsFileProcessor {
       writer.makeMetadataVisible();
       if (!flushingMemTables.remove(memTable)) {
         logger.warn(
-            "{}: {} put the memtable (signal={}) out of flushingMemtables but it is not in the queue.",
+            "{}: {} put the memtable-{} (signal={}) out of flushingMemtables but it is not in the queue.",
             storageGroupName,
             tsFileResource.getTsFile().getName(),
+            memTable.getMemTableId(),
             memTable.isSignalMemTable());
       } else if (logger.isDebugEnabled()) {
         logger.debug(
-            "{}: {} memtable (signal={}) is removed from the queue. {} left.",
+            "{}: {} memtable-{} (signal={}) is removed from the queue. {} left.",
             storageGroupName,
             tsFileResource.getTsFile().getName(),
+            memTable.getMemTableId(),
             memTable.isSignalMemTable(),
             flushingMemTables.size());
       }
@@ -1084,9 +1094,10 @@ public class TsFileProcessor {
       memTable.notifyAll();
       if (logger.isDebugEnabled()) {
         logger.debug(
-            "{}: {} released a memtable (signal={}), flushingMemtables size ={}",
+            "{}: {} released a memtable-{} (signal={}), flushingMemtables size ={}",
             storageGroupName,
             tsFileResource.getTsFile().getName(),
+            memTable.getMemTableId(),
             memTable.isSignalMemTable(),
             flushingMemTables.size());
       }
@@ -1105,8 +1116,9 @@ public class TsFileProcessor {
     if (!memTableToFlush.isSignalMemTable()) {
       if (memTableToFlush.isEmpty()) {
         logger.info(
-            "This normal memtable is empty, skip flush. {}: {}",
+            "This normal memtable-{} is empty, skip flush. {}: {}",
             storageGroupName,
+            memTableToFlush.getMemTableId(),
             tsFileResource.getTsFile().getName());
       } else {
         try {
@@ -1204,9 +1216,10 @@ public class TsFileProcessor {
 
     if (logger.isDebugEnabled()) {
       logger.debug(
-          "{}: {} try get lock to release a memtable (signal={})",
+          "{}: {} try get lock to release a memtable-{} (signal={})",
           storageGroupName,
           tsFileResource.getTsFile().getAbsolutePath(),
+          memTableToFlush.getMemTableId(),
           memTableToFlush.isSignalMemTable());
     }
 

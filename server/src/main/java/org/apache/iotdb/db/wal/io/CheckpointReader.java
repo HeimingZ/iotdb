@@ -19,6 +19,7 @@
 package org.apache.iotdb.db.wal.io;
 
 import org.apache.iotdb.db.wal.checkpoint.Checkpoint;
+import org.apache.iotdb.db.wal.checkpoint.CheckpointType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +30,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /** CheckpointReader is used to read all checkpoints from .checkpoint file. */
 public class CheckpointReader {
@@ -45,6 +48,7 @@ public class CheckpointReader {
   }
 
   private void init() {
+    Set<Long> memtableIds = new HashSet<>();
     checkpoints = new ArrayList<>();
     try (DataInputStream logStream =
         new DataInputStream(new BufferedInputStream(new FileInputStream(logFile)))) {
@@ -52,6 +56,22 @@ public class CheckpointReader {
       while (logStream.available() > 0) {
         Checkpoint checkpoint = Checkpoint.deserialize(logStream);
         checkpoints.add(checkpoint);
+        if (!checkpoint.getMemTableInfos().isEmpty()) {
+          long id = checkpoint.getMemTableInfos().get(0).getMemTableId();
+          System.out.println(checkpoint.getType() + "memtable-" + id);
+          if (memtableIds.contains(id)) {
+            if (checkpoint.getType() == CheckpointType.FLUSH_MEMORY_TABLE) {
+              memtableIds.remove(id);
+            }
+          } else {
+            if (checkpoint.getType() == CheckpointType.CREATE_MEMORY_TABLE) {
+              memtableIds.add(id);
+            }
+          }
+          if (id == 5048) {
+            int i = 0;
+          }
+        }
       }
     } catch (IOException e) {
       logger.warn(
@@ -65,5 +85,12 @@ public class CheckpointReader {
 
   public List<Checkpoint> getCheckpoints() {
     return checkpoints;
+  }
+
+  public static void main(String[] args) {
+    CheckpointReader checkpointReader =
+        new CheckpointReader(new File("/Users/heimingz/Downloads/_0.checkpoint"));
+    System.out.println(checkpointReader.getMaxMemTableId());
+    System.out.println(checkpointReader.getCheckpoints());
   }
 }
